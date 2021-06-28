@@ -22,6 +22,7 @@ var Modules = map[string]string{
 	"admin":      AdminJs,
 	"chequebook": ChequebookJs,
 	"clique":     CliqueJs,
+	"themis":     ThemisJs,
 	"ethash":     EthashJs,
 	"debug":      DebugJs,
 	"eth":        EthJs,
@@ -113,6 +114,36 @@ web3._extend({
 		new web3._extend.Property({
 			name: 'proposals',
 			getter: 'clique_proposals'
+		}),
+	]
+});
+`
+
+const ThemisJs = `
+web3._extend({
+	property: 'themis',
+	methods: [
+		new web3._extend.Method({
+			name: 'getSnapshot',
+			call: 'themis_getSnapshot',
+			params: 1,
+			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter]
+		}),
+		new web3._extend.Method({
+			name: 'getSnapshotAtHash',
+			call: 'themis_getSnapshotAtHash',
+			params: 1
+		}),
+		new web3._extend.Method({
+			name: 'getValidators',
+			call: 'themis_getValidators',
+			params: 1,
+			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter]
+		}),
+		new web3._extend.Method({
+			name: 'getValidatorsAtHash',
+			call: 'themis_getValidatorsAtHash',
+			params: 1
 		}),
 	]
 });

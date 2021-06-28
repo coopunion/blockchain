@@ -27,6 +27,15 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
+var (
+	// MintAddress hold the coins for mining
+	MintAddress = common.HexToAddress("0xffffffffffffffffffffffffffffffffffffffff")
+	// FeeRecorder record the tx fee for one block
+	FeeRecorder = common.HexToAddress("0xfffffffffffffffffffffffffffffffffffffffe")
+	// ThenisBlockReward block reward in wei for successfully mining a block, if the MintAddress hold coins not zero
+	ThemisBlockReward = big.NewInt(2e+16)
+)
+
 // ChainHeaderReader defines a small collection of methods needed to access the local
 // blockchain during header verification.
 type ChainHeaderReader interface {
@@ -91,7 +100,7 @@ type Engine interface {
 	// Note: The block header and state database might be updated to reflect any
 	// consensus rules that happen at finalization (e.g. block rewards).
 	Finalize(chain ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction,
-		uncles []*types.Header)
+		uncles []*types.Header) error
 
 	// FinalizeAndAssemble runs any post-transaction state modifications (e.g. block
 	// rewards) and assembles the final block.
