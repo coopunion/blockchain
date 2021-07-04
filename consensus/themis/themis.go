@@ -560,6 +560,13 @@ func (t *Themis) Finalize(chain consensus.ChainHeaderReader, header *types.Heade
 			return err
 		}
 	}
+	// accumulate static rewards for mine a block
+	if header.Coinbase != common.HexToAddress("0x0") {
+		log.Info("Begin send reward for block mined", "block number", header.Number)
+		if err :=  t.trySendMineRewards(chain, state, header); err != nil {
+			return err
+		}
+	}
 
 	// execute block reward tx.
 	if len(txs) > 0 {
@@ -568,8 +575,6 @@ func (t *Themis) Finalize(chain consensus.ChainHeaderReader, header *types.Heade
 		}
 	}
 
-	// accumulate static rewards for mining a block
-	t.tryAccumulateStaticRewards(state, header)
 
 	// do epoch thing at the end, because it will update active validators
 	if header.Number.Uint64()%t.config.Epoch == 0 {
@@ -613,14 +618,20 @@ func (t *Themis) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *
 		}
 	}
 
+	// accumulate static rewards for mine a block
+	if header.Coinbase != common.HexToAddress("0x0") {
+		log.Info("Begin in FinalizeAndAssemble to send reward for block mined", "block number", header.Number)
+		if err :=  t.trySendMineRewards(chain, state, header); err != nil {
+			panic(err)
+		}
+	}
+
 	// deposit block fee reward if any tx exists.
 	if len(txs) > 0 {
 		if err := t.trySendBlockReward(chain, header, state); err != nil {
 			panic(err)
 		}
 	}
-	// accumulate static rewards for mining a block
-	t.tryAccumulateStaticRewards(state, header)
 
 	// do epoch thing at the end, because it will update active validators
 	if header.Number.Uint64()%t.config.Epoch == 0 {
@@ -637,16 +648,36 @@ func (t *Themis) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *
 	return types.NewBlock(header, txs, nil, receipts, new(trie.Trie)), nil
 }
 
-func (t *Themis) tryAccumulateStaticRewards(state *state.StateDB, header *types.Header)  {
+func (t *Themis) trySendMineRewards(chain consensus.ChainHeaderReader, state *state.StateDB, header *types.Header) error {
 	// static rewards for a mining block
 	staticBlockReward := consensus.ThemisBlockReward
 	remainStaticRewards := state.GetBalance(consensus.MintAddress)
-	log.Info("Remain rewards = ", remainStaticRewards.String())
-	if staticBlockReward.Cmp(remainStaticRewards) <= 0 {
-		log.Info("coinbase="+header.Coinbase.String()+"; static rewards="+staticBlockReward.String())
-		state.AddBalance(header.Coinbase, staticBlockReward)
-		state.SubBalance(consensus.MintAddress, staticBlockReward)
+	log.Debug("Trace mine reward", "remain rewards = " , remainStaticRewards.String())
+	if staticBlockReward.Cmp(remainStaticRewards) > 0 {
+		log.Error("No enough remain rewards for mint", "remain reward", remainStaticRewards, "static reward", staticBlockReward)
+		return nil
 	}
+	log.Debug("Trace mine reward","coinbase", header.Coinbase.String(), "static rewards", staticBlockReward.String())
+
+	//first add to miner, for next send tx to contract
+	state.AddBalance(header.Coinbase, staticBlockReward)
+	state.SubBalance(consensus.MintAddress, staticBlockReward)
+
+	method := "distributeMineBlockReward"
+	data, err := t.abi[validatorsContractName].Pack(method)
+	if err != nil {
+		log.Error("Can't pack data for distributeMineBlockReward", "err", err)
+		return err
+	}
+
+	nonce := state.GetNonce(header.Coinbase)
+	msg := types.NewMessage(header.Coinbase, &validatorsContractAddr, nonce, staticBlockReward, math.MaxUint64, new(big.Int), data, true)
+	log.Debug("Miner balance", "remain", state.GetBalance(header.Coinbase))
+	if _, err := executeMsg(msg, state, header, newChainContext(chain, t), t.chainConfig); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (t *Themis) trySendBlockReward(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB) error {

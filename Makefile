@@ -146,3 +146,9 @@ geth-windows-amd64:
 	$(GORUN) build/ci.go xgo -- --go=$(GO) --targets=windows/amd64 -v ./cmd/geth
 	@echo "Windows amd64 cross compilation done:"
 	@ls -ld $(GOBIN)/geth-windows-* | grep amd64
+
+#bootnode cross
+bootnode-linux-amd64:
+	$(GORUN) build/ci.go xgo -- --go=$(GO) --targets=linux/amd64 -v ./cmd/bootnode
+	@echo "Linux amd64 cross compilation done:"
+	@ls -ld $(GOBIN)/bootnode-linux-* | grep amd64

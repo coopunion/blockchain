@@ -25,6 +25,13 @@ const validatorsInteractiveABI = `
 	},
 	{
 		"inputs": [],
+		"name": "distributeMineBlockReward",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
 		"name": "getTopValidators",
 		"outputs": [
 		  {
