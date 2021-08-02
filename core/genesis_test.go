@@ -33,11 +33,11 @@ import (
 func TestDefaultGenesisBlock(t *testing.T) {
 	block := DefaultGenesisBlock().ToBlock(nil)
 	if block.Hash() != params.MainnetGenesisHash {
-		t.Errorf("wrong mainnet genesis hash, got %v, want %v", block.Hash(), params.MainnetGenesisHash)
+		t.Errorf("wrong mainnet genesis hash, got %v, want %v", block.Hash().String(), params.MainnetGenesisHash.String())
 	}
-	block = DefaultRopstenGenesisBlock().ToBlock(nil)
-	if block.Hash() != params.RopstenGenesisHash {
-		t.Errorf("wrong ropsten genesis hash, got %v, want %v", block.Hash(), params.RopstenGenesisHash)
+	block = DefaultTestnetGenesisBlock().ToBlock(nil)
+	if block.Hash() != params.TestnetGenesisHash {
+		t.Errorf("wrong testnet genesis hash, got %v, want %v", block.Hash().String(), params.TestnetGenesisHash.String())
 	}
 }
 
@@ -98,11 +98,11 @@ func TestSetupGenesis(t *testing.T) {
 			name: "custom block in DB, genesis == ropsten",
 			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
 				customg.MustCommit(db)
-				return SetupGenesisBlock(db, DefaultRopstenGenesisBlock())
+				return SetupGenesisBlock(db, DefaultTestnetGenesisBlock())
 			},
-			wantErr:    &GenesisMismatchError{Stored: customghash, New: params.RopstenGenesisHash},
-			wantHash:   params.RopstenGenesisHash,
-			wantConfig: params.RopstenChainConfig,
+			wantErr:    &GenesisMismatchError{Stored: customghash, New: params.TestnetGenesisHash},
+			wantHash:   params.TestnetGenesisHash,
+			wantConfig: params.TestChainConfig,
 		},
 		{
 			name: "compatible config in DB",
